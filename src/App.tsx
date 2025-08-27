@@ -1,22 +1,33 @@
-import { useState, useRef, useEffect, useCallback } from "react";
 import "./App.css";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { client } from "./lib/appwrite";
 import { AppwriteException } from "appwrite";
-import AppwriteSvg from "../public/appwrite.svg";
-import ReactSvg from "../public/react.svg";
+import AppwriteSvg from "/appwrite.svg";
+import ReactSvg from "/react.svg";
+
+interface LogEntry {
+  date: Date;
+  method: string;
+  path: string;
+  status: number;
+  response: string;
+}
 
 function App() {
-  const [detailHeight, setDetailHeight] = useState(55);
-  const [logs, setLogs] = useState([]);
-  const [status, setStatus] = useState("idle");
-  const [showLogs, setShowLogs] = useState(false);
+  const [detailHeight, setDetailHeight] = useState<number>(55);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [showLogs, setShowLogs] = useState<boolean>(false);
 
-  const detailsRef = useRef(null);
+  const detailsRef = useRef<HTMLDetailsElement | null>(null);
 
   const updateHeight = useCallback(() => {
     if (detailsRef.current) {
       setDetailHeight(detailsRef.current.clientHeight);
     }
+    // eslint-disable-next-line
   }, [logs, showLogs]);
 
   useEffect(() => {
@@ -27,20 +38,20 @@ function App() {
 
   useEffect(() => {
     if (!detailsRef.current) return;
-    detailsRef.current.addEventListener("toggle", updateHeight);
+    const current = detailsRef.current;
+    current.addEventListener("toggle", updateHeight);
 
     return () => {
-      if (!detailsRef.current) return;
-      detailsRef.current.removeEventListener("toggle", updateHeight);
+      current.removeEventListener("toggle", updateHeight);
     };
-  }, []);
+  }, [updateHeight]);
 
-  async function sendPing() {
+  async function sendPing(): Promise<void> {
     if (status === "loading") return;
     setStatus("loading");
     try {
       const result = await client.ping();
-      const log = {
+      const log: LogEntry = {
         date: new Date(),
         method: "GET",
         path: "/v1/ping",
@@ -49,8 +60,8 @@ function App() {
       };
       setLogs((prevLogs) => [log, ...prevLogs]);
       setStatus("success");
-    } catch (err) {
-      const log = {
+    } catch (err: unknown) {
+      const log: LogEntry = {
         date: new Date(),
         method: "GET",
         path: "/v1/ping",
@@ -71,11 +82,12 @@ function App() {
       className="checker-background flex flex-col items-center p-5"
       style={{ marginBottom: `${detailHeight}px` }}
     >
+      {/* React + Appwrite logos */}
       <div className="mt-25 flex w-full max-w-[40em] items-center justify-center lg:mt-34">
         <div className="rounded-[25%] border border-[#19191C0A] bg-[#F9F9FA] p-3 shadow-[0px_9.36px_9.36px_0px_hsla(0,0%,0%,0.04)]">
           <div className="rounded-[25%] border border-[#FAFAFB] bg-white p-5 shadow-[0px_2px_12px_0px_hsla(0,0%,0%,0.03)] lg:p-9">
             <img
-              alt={"React logo"}
+              alt="React logo"
               src={ReactSvg}
               className="h-14 w-14"
               width={56}
@@ -84,7 +96,9 @@ function App() {
           </div>
         </div>
         <div
-          className={`flex w-38 items-center transition-opacity duration-2500 ${status === "success" ? "opacity-100" : "opacity-0"}`}
+          className={`flex w-38 items-center transition-opacity duration-2500 ${
+            status === "success" ? "opacity-100" : "opacity-0"
+          }`}
         >
           <div className="to-[rgba(253, 54, 110, 0.15)] h-[1px] flex-1 bg-gradient-to-l from-[#f02e65]"></div>
           <div className="icon-check flex h-5 w-5 items-center justify-center rounded-full border border-[#FD366E52] bg-[#FD366E14] text-[#FD366E]"></div>
@@ -93,7 +107,7 @@ function App() {
         <div className="rounded-[25%] border border-[#19191C0A] bg-[#F9F9FA] p-3 shadow-[0px_9.36px_9.36px_0px_hsla(0,0%,0%,0.04)]">
           <div className="rounded-[25%] border border-[#FAFAFB] bg-white p-5 shadow-[0px_2px_12px_0px_hsla(0,0%,0%,0.03)] lg:p-9">
             <img
-              alt={"Appwrite logo"}
+              alt="Appwrite logo"
               src={AppwriteSvg}
               className="h-14 w-14"
               width={56}
@@ -103,6 +117,7 @@ function App() {
         </div>
       </div>
 
+      {/* Status section */}
       <section className="mt-12 flex h-52 flex-col items-center">
         {status === "loading" ? (
           <div className="flex flex-row gap-4">
@@ -147,12 +162,15 @@ function App() {
 
         <button
           onClick={sendPing}
-          className={`cursor-pointer rounded-md bg-[#FD366E] px-2.5 py-1.5 ${status === "loading" ? "hidden" : "visible"}`}
+          className={`cursor-pointer rounded-md bg-[#FD366E] px-2.5 py-1.5 ${
+            status === "loading" ? "hidden" : "visible"
+          }`}
         >
           <span className="text-white">Send a ping</span>
         </button>
       </section>
 
+      {/* Info cards */}
       <div className="grid grid-rows-3 gap-7 lg:grid-cols-3 lg:grid-rows-none">
         <div className="flex h-full w-72 flex-col gap-2 rounded-md border border-[#EDEDF0] bg-white p-4">
           <h2 className="text-xl font-light text-[#2D2D31]">Edit your app</h2>
@@ -201,8 +219,9 @@ function App() {
         </a>
       </div>
 
+      {/* Logs */}
       <aside className="fixed bottom-0 flex w-full cursor-pointer border-t border-[#EDEDF0] bg-white">
-        <details open={showLogs} ref={detailsRef} className={"w-full"}>
+        <details open={showLogs} ref={detailsRef} className="w-full">
           <summary className="flex w-full flex-row justify-between p-4 marker:content-none">
             <div className="flex gap-2">
               <span className="font-semibold">Logs</span>
@@ -263,8 +282,8 @@ function App() {
                 </thead>
                 <tbody>
                   {logs.length > 0 ? (
-                    logs.map((log) => (
-                      <tr>
+                    logs.map((log, index) => (
+                      <tr key={index}>
                         <td className="py-2 pl-4 font-[Fira_Code]">
                           {log.date.toLocaleString("en-US", {
                             month: "short",
